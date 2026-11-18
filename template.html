@@ -54,6 +54,9 @@ section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .chart .base { stroke: var(--line); stroke-width: 1; }
 .chart .bar { fill: var(--series); }
 .chart .bar.pick { fill: var(--mark); }
+.chart .bar.low:not(.pick) { opacity: 0.45; }
+.chart .medline { stroke: var(--fg2); stroke-width: 1; }
+.chart .medlabel { fill: var(--fg2); font-weight: 600; }
 .chart .hit { fill: transparent; pointer-events: all; }
 .chart svg > :not(.hit) { pointer-events: none; }
 .chart .hit:hover + .bar, .chart .hit.on + .bar { opacity: 0.75; }
@@ -80,11 +83,18 @@ th:first-child, td:first-child { text-align: left; }
 .game { display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--line); padding-top: 16px; }
 .game h3 { font: 700 20px/1.2 var(--display); margin: 0; overflow-wrap: anywhere; }
 .game h3 a { color: var(--mark); text-decoration-color: var(--mark); text-underline-offset: 3px; }
+.game .top { display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; align-items: flex-start; }
+.game .top > div { min-width: 0; }
+.copy { font: 500 13px var(--body); color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; flex: none; }
+.copy:hover { border-color: var(--fg3); }
+.linkbox { width: 100%; box-sizing: border-box; font: 13px var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.status { font-size: 14px; color: var(--fg); max-width: 65ch; }
+.status b { font-weight: 600; }
 .game .by { color: var(--fg3); font-size: 13px; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--mark); margin-right: 6px; }
 .how { display: flex; flex-direction: column; gap: 12px; color: var(--fg2); font-size: 14px; max-width: 65ch; }
 .how dl { margin: 0; display: flex; flex-direction: column; gap: 6px; }
-.how dl div { display: grid; grid-template-columns: 64px 1fr; gap: 12px; }
+.how dl div { display: grid; grid-template-columns: 96px 1fr; gap: 12px; }
 .how dt { color: var(--fg); font-weight: 600; }
 .how dd { margin: 0; min-width: 0; }
 footer { font-size: 12px; color: var(--fg3); max-width: 65ch; display: flex; flex-direction: column; gap: 6px; }
@@ -142,6 +152,7 @@ a { color: inherit; }
         <div><dt>Mean</dt><dd>All ratings added up, divided by the number of games.</dd></div>
         <div><dt>Median</dt><dd>The middle game when all games are sorted by ratings.</dd></div>
         <div><dt>Mode</dt><dd>The number of ratings that the most games share.</dd></div>
+        <div><dt>Median rule</dt><dd>When voting ends, itch.io multiplies the score of a game with fewer ratings than the median by the square root of (its ratings ÷ the median). Games at or above the median are not changed.</dd></div>
         <div><dt>Rank</dt><dd>One more than the number of games with more ratings. Games with the same count share a rank.</dd></div>
       </dl>
     </div>
@@ -164,10 +175,11 @@ const GAMES = __DATA__;
 const METRICS = {
   ratings: { col: 3, min: 1, unit: n => n === 1 ? "rating" : "ratings", axis: "Ratings received",
     title: "Ratings per game",
-    note: "Each bar is the number of games that have received exactly that many ratings. The last bar groups every game with 30 or more." },
+    rule: true,
+    note: s => `Each bar is the number of games that have received exactly that many ratings. The last bar groups every game with 30 or more. Faded bars are games below the median of ${s.median}. When voting ends, itch.io lowers the score of every game that has fewer ratings than the median, so a game is safe once it reaches it. The median can still move before then.` },
   cool: { col: 4, min: 0, unit: () => "coolness", axis: "Coolness",
     title: "Coolness per game",
-    note: "Coolness is itch.io's score for how much a team has rated other entries in the jam. Rating more games raises it, and it says nothing about how good the game is. Many teams are at 0 because they have not rated anyone yet. The last bar groups every game with 30 or more." }
+    note: () => "Coolness is itch.io's score for how much a team has rated other entries in the jam. Rating more games raises it, and it says nothing about how good the game is. Many teams are at 0 because they have not rated anyone yet. The last bar groups every game with 30 or more." }
 };
 const CAP = 30;
 let metric = "ratings";
@@ -222,7 +234,7 @@ function renderChart(m, s) {
   const y = c => pad.t + ph - (c / yMax) * ph;
   const bw = pw / b.length, gap = bw > 8 ? 2 : 1;
   const root = svg("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img",
-    "aria-label": `${m.title}: bar chart of how many games have each value. Mean ${round1(s.mean)}, median ${s.median}, mode ${s.mode}.` });
+    "aria-label": `${m.title}: bar chart of how many games have each value. Mean ${round1(s.mean)}, median ${s.median}, mode ${s.mode}.` + (m.rule ? ` Bars below the median of ${s.median} are faded.` : "") });
   for (let c = 0; c <= yMax; c += step) {
     root.append(svg("line", { class: c ? "gridline" : "base", x1: pad.l, x2: W - pad.r, y1: y(c), y2: y(c) }));
     const t = svg("text", { x: pad.l - 6, y: y(c) + 4, "text-anchor": "end" }); t.textContent = c; root.append(t);
@@ -234,7 +246,7 @@ function renderChart(m, s) {
     const x = pad.l + i * bw, top = y(bin.count), h = pad.t + ph - top, r = Math.min(3, (bw - gap) / 2, h);
     const hit = svg("rect", { class: "hit", x, y: pad.t, width: bw, height: ph, tabindex: 0,
       "aria-label": `${bin.label} ${m.unit(bin.lo)}: ${bin.count} games` });
-    const bar = svg("path", { class: "bar" + (i === pickIdx ? " pick" : ""),
+    const bar = svg("path", { class: "bar" + (i === pickIdx ? " pick" : "") + (m.rule && bin.lo < s.median ? " low" : ""),
       d: h <= 0 ? "" : `M${x + gap / 2},${top + h} v${-(h - r)} q0,${-r} ${r},${-r} h${bw - gap - 2 * r} q${r},0 ${r},${r} v${h - r} z` });
     const show = () => {
       tip.textContent = "";
@@ -256,11 +268,24 @@ function renderChart(m, s) {
   });
   const ax = svg("text", { x: pad.l + pw / 2, y: H - 6, "text-anchor": "middle" }); ax.textContent = m.axis; root.append(ax);
   const ay = svg("text", { x: 0, y: 12 }); ay.textContent = "Games"; root.append(ay);
+  let med = null;
+  if (m.rule) {
+    const mx = pad.l + (Math.min(Math.ceil(s.median), CAP) - m.min) * bw;
+    root.append(svg("line", { class: "medline", x1: mx, x2: mx, y1: pad.t, y2: H - 19 }));
+    med = svg("text", { class: "medlabel", x: mx, y: H - 6, "text-anchor": "middle" }); med.textContent = "median " + s.median; root.append(med);
+  }
   // direct label for the picked game, kept inside the plot
   const cx = pad.l + pickIdx * bw + bw / 2;
   const name = picked[0].length > 26 ? picked[0].slice(0, 25) + "…" : picked[0];
   const lab = svg("text", { class: "picklabel", y: 12 }); lab.textContent = `${name}: ${picked[m.col]}`;
   root.append(lab); host.append(root, tip);
+  if (med) {
+    const mw = med.getComputedTextLength(), mx = Number(med.getAttribute("x")), aw = ax.getComputedTextLength(), acx = pad.l + pw / 2;
+    if (mx + mw / 2 + 10 > acx - aw / 2 && mx - mw / 2 - 10 < acx + aw / 2) {
+      if (mx < acx) { ax.setAttribute("x", W - pad.r); ax.setAttribute("text-anchor", "end"); }
+      else { ax.setAttribute("x", pad.l); ax.setAttribute("text-anchor", "start"); }
+    }
+  }
   const lw = lab.getComputedTextLength();
   const lx = Math.min(W - pad.r - lw, Math.max(pad.l + 44, cx - lw / 2));
   lab.setAttribute("x", lx);
@@ -280,7 +305,17 @@ function renderGame() {
   const h = el("h3"); const sw = el("span", "swatch"); sw.setAttribute("aria-hidden", "true");
   if (/^https:\/\/[a-z0-9-]+\.itch\.io\//i.test(g[2])) { const a = el("a", "", g[0]); a.href = g[2]; a.target = "_blank"; a.rel = "noopener"; h.append(sw, a); }
   else h.append(sw, document.createTextNode(g[0]));
-  const head = el("div"); head.append(h, el("div", "by", "by " + g[1]));
+  const names = el("div"); names.append(h, el("div", "by", "by " + g[1]));
+  const copy = el("button", "copy", "Copy link to this game"); copy.type = "button"; copy.id = "copy-link";
+  const head = el("div", "top"); head.append(names, copy);
+  const linkbox = el("input", "linkbox"); linkbox.type = "text"; linkbox.readOnly = true; linkbox.id = "link-box"; linkbox.hidden = true;
+  linkbox.setAttribute("aria-label", "Link to this game on this page");
+  copy.addEventListener("click", () => {
+    const url = location.origin + location.pathname + "#" + keyOf(g);
+    const fallback = () => { linkbox.value = url; linkbox.hidden = false; linkbox.focus(); linkbox.select(); copy.textContent = "Copy the link below"; };
+    try { navigator.clipboard.writeText(url).then(() => { copy.textContent = "Link copied"; setTimeout(() => { copy.textContent = "Copy link to this game"; }, 2000); }, fallback); }
+    catch (e) { fallback(); }
+  });
   const dl = el("dl", "stats");
   const add = (label, value, sub) => { const d = el("div"); d.append(el("dt", "", label), el("dd", "", value), el("small", "", sub)); dl.append(d); };
   const r = standing(g, 3), c = standing(g, 4), sr = summary(3);
@@ -289,13 +324,20 @@ function renderGame() {
   add("Rank by ratings", "#" + fmt(r.rank), `of ${fmt(GAMES.length)}, ${tie(r)}`);
   add("More ratings than", r.pct + "%", "of all entries");
   add("Coolness", String(c.value), `#${fmt(c.rank)}, ${tie(c)}`);
-  box.append(head, dl, el("p", "note", "Coolness is itch.io's score for how much a team has rated other entries in the jam. Rating more games raises it. It says nothing about how good the game is."));
+  const status = el("p", "status");
+  if (r.value >= sr.median) {
+    status.append(el("b", "", "\u2713 At or above the median of " + sr.median + "."), document.createTextNode(" As things stand, itch.io will not reduce this game's score."));
+  } else {
+    const need = Math.ceil(sr.median) - r.value, factor = Math.sqrt(r.value / sr.median);
+    status.append(el("b", "", "! Below the median of " + sr.median + "."), document.createTextNode(` It needs ${need} more ${need === 1 ? "rating" : "ratings"} to reach it. At its current count, itch.io would multiply its final score by ${factor.toFixed(2)}.`));
+  }
+  box.append(head, linkbox, dl, status, el("p", "note", "Coolness is itch.io's score for how much a team has rated other entries in the jam. Rating more games raises it. It says nothing about how good the game is."));
 }
 
 function render() {
   const m = METRICS[metric], s = summary(m.col);
   $("h-dist").textContent = m.title;
-  $("metric-note").textContent = m.note;
+  $("metric-note").textContent = m.note(s);
   renderStats(m, s); renderChart(m, s); renderTable(m, s); renderGame();
 }
 
@@ -321,9 +363,18 @@ function search() {
   });
   list.hidden = false;
 }
+function keyOf(g) {
+  const m = /^https:\/\/([a-z0-9-]+)\.itch\.io\/([a-z0-9_-]+)\/?$/i.exec(g[2]);
+  return m ? (m[1] + "/" + m[2]).toLowerCase() : "id-" + g[5];
+}
+function fromHash() {
+  let key = ""; try { key = decodeURIComponent(location.hash.slice(1)).toLowerCase(); } catch (e) {}
+  return key ? GAMES.find(g => keyOf(g) === key) : null;
+}
 function choose(i) {
   if (!matches[i]) return;
   picked = matches[i]; q.value = picked[0]; list.hidden = true; render();
+  try { history.replaceState(null, "", "#" + keyOf(picked)); } catch (e) {}
   try { localStorage.setItem("picked", String(picked[5])); } catch (e) {}
 }
 q.addEventListener("input", search);
@@ -345,6 +396,8 @@ for (const [id, key] of [["m-ratings", "ratings"], ["m-cool", "cool"]]) {
   });
 }
 try { const saved = Number(localStorage.getItem("picked")); const g = GAMES.find(x => x[5] === saved); if (g) picked = g; } catch (e) {}
+{ const g = fromHash(); if (g) picked = g; }
+window.addEventListener("hashchange", () => { const g = fromHash(); if (g && g !== picked) { picked = g; render(); } });
 $("n-entries").textContent = fmt(GAMES.length);
 $("asof").textContent = SNAPSHOT;
 render();

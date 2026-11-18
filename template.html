@@ -64,7 +64,8 @@ section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .chart .base { stroke: var(--line); stroke-width: 1; }
 .chart .bar { fill: var(--series); }
 .chart .bar.pick { fill: var(--pick); }
-.chart .hit { fill: transparent; }
+.chart .hit { fill: transparent; pointer-events: all; }
+.chart svg > :not(.hit) { pointer-events: none; }
 .chart .hit:hover + .bar, .chart .hit.on + .bar { opacity: 0.75; }
 .tip { position: absolute; pointer-events: none; background: var(--fg); color: var(--bg); font-size: 12px; line-height: 1.35; padding: 6px 9px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, -100%); z-index: 2; }
 .tip b { font-weight: 600; }

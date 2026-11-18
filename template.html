@@ -133,6 +133,7 @@ a { color: inherit; }
     <p class="made">Made by itlilly, the creator of <a href="https://itlilly.itch.io/stick-n-roll" target="_blank" rel="noopener">Stick "n" Roll</a>, a dice roguelike in this jam.</p>
     <p>Built from itch.io's public entries list for the jam. Not affiliated with Unity or itch.io. The figures refresh about once an hour.</p>
     <p>The jam page on itch.io can show a few more entries than this page. Some submissions are counted there but are not in the public list, so they cannot be included here.</p>
+    <p>This page counts visits with GoatCounter. It uses no cookies and collects no personal data.</p>
   </footer>
 </div>
 
@@ -332,5 +333,6 @@ render();
 let lastW = $("chart").clientWidth;
 new ResizeObserver(() => { const w = $("chart").clientWidth; if (w !== lastW) { lastW = w; const m = METRICS[metric]; renderChart(m, summary(m.col)); } }).observe($("chart"));
 </script>
+<script data-goatcounter="https://itlilly.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>

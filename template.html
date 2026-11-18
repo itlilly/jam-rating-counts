@@ -9,23 +9,13 @@
 <style>
 /* Layout: one narrow column. Summary figures, then the distribution, then one game looked up against it. */
 :root {
-  --bg: #f6f7fa; --surface: #ffffff; --line: #dfe2ea; --grid: #e8eaf0;
-  --fg: #14161c; --fg2: #4b5060; --fg3: #6f7587;
-  --series: #2a78d6; --pick: #eb6834; --focus: #2a78d6;
+  /* Stick n Roll's colours: navy ground, white text, green headings, yellow accent. One dark look in every theme. */
+  color-scheme: dark;
+  --bg: #181425; --surface: #262b44; --line: #3a4466; --grid: #333a5a;
+  --fg: #ffffff; --fg2: #c0cbdc; --fg3: #8b9bb4;
+  --head: #63c74d; --series: #0099db; --pick: #feae34; --focus: #feae34;
   --display: "Space Grotesk", "Inter", system-ui, sans-serif;
   --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #12141a; --surface: #1a1d25; --line: #2e323e; --grid: #262a35;
-    --fg: #eef0f5; --fg2: #b9bdca; --fg3: #8d93a5;
-    --series: #3987e5; --pick: #d95926; --focus: #6aa6ee; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #12141a; --surface: #1a1d25; --line: #2e323e; --grid: #262a35;
-  --fg: #eef0f5; --fg2: #b9bdca; --fg3: #8d93a5;
-  --series: #3987e5; --pick: #d95926; --focus: #6aa6ee; color-scheme: dark;
 }
 [hidden] { display: none !important; }
 body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--body); }
@@ -35,8 +25,8 @@ body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--body); }
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: flex; flex-direction: column; gap: 28px;
 }
-h1 { font: 700 30px/1.15 var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
-h2 { font: 700 18px/1.25 var(--display); margin: 0; text-wrap: balance; }
+h1 { font: 700 30px/1.15 var(--display); color: var(--head); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font: 700 18px/1.25 var(--display); color: var(--head); margin: 0; text-wrap: balance; }
 p { margin: 0; }
 .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg3); }
 .lede { color: var(--fg2); max-width: 65ch; }
@@ -52,7 +42,7 @@ section { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; align-self: flex-start; }
 .seg button { font: 500 13px var(--body); color: var(--fg2); background: transparent; border: 0; padding: 7px 12px; cursor: pointer; }
-.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.seg button[aria-pressed="true"] { background: var(--pick); color: var(--bg); font-weight: 600; }
 .row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
 .note { font-size: 13px; color: var(--fg3); max-width: 65ch; }
 
@@ -89,12 +79,12 @@ th:first-child, td:first-child { text-align: left; }
 
 .game { display: flex; flex-direction: column; gap: 14px; border-top: 1px solid var(--line); padding-top: 16px; }
 .game h3 { font: 700 20px/1.2 var(--display); margin: 0; overflow-wrap: anywhere; }
-.game h3 a { color: inherit; text-decoration-color: var(--pick); text-underline-offset: 3px; }
+.game h3 a { color: var(--pick); text-decoration-color: var(--pick); text-underline-offset: 3px; }
 .game .by { color: var(--fg3); font-size: 13px; }
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--pick); margin-right: 6px; }
 footer { font-size: 12px; color: var(--fg3); max-width: 65ch; display: flex; flex-direction: column; gap: 6px; }
 footer .made { font-size: 14px; color: var(--fg2); }
-footer .made a { color: var(--fg); font-weight: 600; text-decoration-color: var(--pick); text-underline-offset: 3px; }
+footer .made a { color: var(--pick); font-weight: 600; text-decoration-color: var(--pick); text-underline-offset: 3px; }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 @media (max-width: 480px) { h1 { font-size: 24px; } .stats dd { font-size: 22px; } .panel { padding: 14px; } }
